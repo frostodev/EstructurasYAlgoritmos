@@ -1,0 +1,33 @@
+# Archivos de configuración de CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Directorios de compilación específicos
+cmake-build-debug/
+cmake-build-release/
+
+# Archivos temporales de CLion
+.idea/
+*.iml
+
+# Archivos binarios y ejecutables generados
+*.out
+*.exe
+*.dSYM/
+
+# Archivos de compilación de dependencias
+*.a
+*.so
+*.dylib
+*.lib
+*.dll
+
+# Archivos de configuración de depuradores
+.vscode/
+*.launch
+
+# Archivos de logs
+*.log
