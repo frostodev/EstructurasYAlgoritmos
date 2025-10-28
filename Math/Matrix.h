@@ -521,6 +521,7 @@ namespace Math {
          *
          * @param other La matriz del lado derecho (dimensiones 'm x p').
          * @return La matriz resultante del producto (dimensiones 'n x p').
+         * @note Complejidad: O(n^2.81) (junto a strassen_recursive())
          */
         Matrix strassen_mul(const Matrix& other) const {
             const size_t n = rows_;
@@ -584,8 +585,8 @@ namespace Math {
 
             // --- Crear Matrices Rellenas (Padding) ---
             // Se crean matrices k x k inicializadas a cero (gracias al constructor)
-            Matrix<T> A_pad(k, k);
-            Matrix<T> B_pad(k, k);
+            Matrix A_pad(k, k);
+            Matrix B_pad(k, k);
 
             // Copiar *this (A) en A_pad
             for (size_t i = 0; i < n; ++i) {
@@ -604,12 +605,12 @@ namespace Math {
             // --- Llamar a la Recursión ---
             // Llamamos a la función recursiva con nuestras matrices
             // cuadradas y de potencia de 2.
-            Matrix<T> C_pad = strassen_recursive(A_pad, B_pad);
+            Matrix C_pad = strassen_recursive(A_pad, B_pad);
 
             // --- Extraer el Resultado Final ---
             // El resultado C_pad es k x k, pero solo queremos la
             // parte n x p superior izquierda.
-            Matrix<T> Result(n, p);
+            Matrix Result(n, p);
             for (size_t i = 0; i < n; ++i) {
                 for (size_t j = 0; j < p; ++j) {
                     Result(i, j) = C_pad(i, j);
@@ -629,16 +630,16 @@ namespace Math {
          * @param A La matriz del lado izquierdo (n x n).
          * @param B La matriz del lado derecho (n x n).
          * @return Matrix La matriz producto (n x n).
-         * @note Complejidad: T(n) = 7 * T(n/2) + O(n^2)
+         * @note Ecuación de recurrencia: T(n) = 7 * T(n/2) + O(n^2)
          */
-        Matrix strassen_recursive(const Matrix<T>& A, const Matrix<T>& B) const {
+        Matrix strassen_recursive(const Matrix& A, const Matrix& B) const {
             const size_t n = A.rows(); // A y B son n x n
 
             // --- Caso Base de la Recursión ---
             // (Podríamos poner n == STRASSEN_THRESHOLD y llamar a classical_mul,
             // pero n == 1 es el caso base matemático más puro)
             if (n == 1) {
-                Matrix<T> C(1, 1);
+                Matrix C(1, 1);
                 C(0, 0) = A(0, 0) * B(0, 0);
                 return C;
             }

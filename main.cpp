@@ -1,7 +1,11 @@
 
+#include "Test/TestMatrix.h"
+#include "Test/TestFiniteAutomaton.h"
+
 int main() {
 
-    // el main se usará para llamar funciones de prueba (pronto)
+    Test::test_matrix();
+    Test::test_finite_automaton();
 
     return 0;
 }

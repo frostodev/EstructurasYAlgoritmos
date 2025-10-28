@@ -16,6 +16,8 @@ Implementaciones de contenedores genéricos, la mayoría siguiendo la **Rule of 
 - `HashMap`: Una tabla hash genérica que utiliza **encadenamiento separado** (con DS::LinkedList) para manejar colisiones y rehashing automático basado en factor de carga.
 - `Graph`: Una clase de grafo genérica que soporta grafos dirigidos/no dirigidos y ponderados/no ponderados, implementada con una lista de adyacencia sobre DS::HashMap.
 
+---
+
 #### 2. Algoritmos (`/Algorithms`):
 Implementaciones de algoritmos comunes que operan sobre las estructuras de datos.
 - **Algoritmos de ordenamiento** (`Sorting.h`):
@@ -31,6 +33,8 @@ Implementaciones de algoritmos comunes que operan sobre las estructuras de datos
   - `DFS`
   - `BFS`
   - `Dijkstra`
+
+---
 
 #### 3. Matemáticas (`/Math`):
 Una librería matemática construida desde cero, usando `concepts` de C++ 20 para plantillas numéricas.
@@ -48,6 +52,18 @@ Una librería matemática construida desde cero, usando `concepts` de C++ 20 par
     - Radicación, exponenciación y logaritmos.
     - Funciones de maniuplación de signo.
 
+---
+
+#### 4. Teoría de la Computación (`/Automata`)
+
+Una exploración de modelos computacionales fundamentales, construida sobre las estructuras de datos base.
+
+- **`FiniteAutomaton`**: Una implementación genérica de un **Autómata Finito Determinista (AFD)**.
+  * Utiliza `DS::HashMap` internamente para una gestión eficiente de la función de transición (búsquedas O(1) en promedio).
+  * Soporta tipos genéricos (plantillas) para estados (ej. `int` o `std::string`) y símbolos (ej. `char`).
+
+---
+
 ### 🏗️ Por implementar
 
 Aún faltan varias estructuras, algoritmos y utilidades que me gustaría implementar. Por ejemplo:
@@ -55,6 +71,7 @@ Aún faltan varias estructuras, algoritmos y utilidades que me gustaría impleme
 - `Deque`
 - `Pair`
 - Algoritmos de Prim, Kruskal y Floyd-Warshall.
+- Unit tests para todas las estructuras.
 
 ... y muchas cosas más.
 
