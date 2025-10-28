@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(EstructurasYAlgoritmos
         Algorithms/Graphs.h
         Algorithms/Sorting.h
+        Algorithms/Simplex.h
 
         Automata/FiniteAutomaton.h
 
@@ -30,7 +31,10 @@ add_executable(EstructurasYAlgoritmos
 
         Test/TestMatrix.cpp
         Test/TestMatrix.h
-        main.cpp
         Test/TestFiniteAutomaton.h
         Test/TestFiniteAutomaton.cpp
+        Test/TestSimplex.h
+        Test/TestSimplex.cpp
+
+        main.cpp
 )

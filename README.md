@@ -34,6 +34,8 @@ Implementaciones de algoritmos comunes que operan sobre las estructuras de datos
   - `BFS`
   - `Dijkstra`
 
+- **Algoritmo Símplex** (`Simplex.h`)
+
 ---
 
 #### 3. Matemáticas (`/Math`):
