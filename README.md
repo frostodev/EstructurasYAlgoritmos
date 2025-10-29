@@ -52,7 +52,7 @@ Una librería matemática construida desde cero, usando `concepts` de C++ 20 par
 - **Utilidades**
     - Funciones de redondeo.
     - Radicación, exponenciación y logaritmos.
-    - Funciones de maniuplación de signo.
+    - Funciones de manipulación de signo.
 
 ---
 
