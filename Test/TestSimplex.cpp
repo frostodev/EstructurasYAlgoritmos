@@ -265,8 +265,13 @@ namespace Test {
         }
     }
 
+    /**
+     * @brief Realiza todos los tests del algoritmo símplex
+     */
     void test_simplex() {
-        std::cout << "\n--- Pruebas de Algoritmo Símplex ---" << std::endl;
+        std::cout << "\n=============================================" << std::endl;
+        std::cout << "--- Pruebas de Algoritmo Símplex ---" << std::endl;
+        std::cout << "=============================================" << std::endl;
         test_simplex_problem_1();
         test_simplex_problem_2();
         test_simplex_problem_3();

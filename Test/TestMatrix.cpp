@@ -384,7 +384,9 @@ namespace Test {
      * @brief Ejecuta todas las pruebas de matrices
      */
     void test_matrix() {
+        std::cout << "\n=============================================" << std::endl;
         std::cout << "--- Pruebas de Matrices ---" << std::endl;
+        std::cout << "=============================================" << std::endl;
         test_operator_access();
         test_operator_addition();
         test_operator_subtraction();

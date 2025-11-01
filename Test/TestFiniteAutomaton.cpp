@@ -4,6 +4,9 @@
 
 namespace Test {
 
+    /**
+     * @brief Realiza tests de un AFD básico
+     */
     void test_dfa_ends_with_one() {
         std::cout << "\n--- Prueba 1: Autómata simple ---" << std::endl;
         // Usamos <int, char> (Estados como enteros, Alfabeto como caracteres)
@@ -52,6 +55,9 @@ namespace Test {
         std::cout << "  '" << s7 << "': " << (dfa.accepts(s7) ? "Aceptada" : "Rechazada") << " (Esperado: Rechazada)" << std::endl;
     }
 
+    /**
+     * @brief Realiza tests en un AFD un poco más complejo
+     */
     void test_dfa_number_recognizer() {
         std::cout << "\n--- Prueba 2: Reconocedor de Números Flotantes ---" << std::endl;
 
@@ -153,7 +159,9 @@ namespace Test {
      * @brief Ejecuta todas las pruebas de AFD.
      */
     void test_finite_automaton() {
-        std::cout << "\n--- Pruebas de Autómata Finito Determinista ---" << std::endl;
+        std::cout << "\n=============================================" << std::endl;
+        std::cout << "--- Pruebas de Autómata Finito Determinista ---" << std::endl;
+        std::cout << "=============================================" << std::endl;
         test_dfa_ends_with_one();
         test_dfa_number_recognizer();
     }

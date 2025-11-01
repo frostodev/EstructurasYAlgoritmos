@@ -4,19 +4,19 @@
 #include "../DataStructures/Graph.h"
 #include "../DataStructures/PriorityQueue.h"
 #include "../DataStructures/Queue.h"
+#include "../DataStructures/HashSet.h"
 
-#include <unordered_set> // pronto cambiar a una implementación propia
 #include <limits>
 #include <iostream>
 
 namespace Algorithms {
 
     /*
-     * NOTA: Los algoritmos de recorrido (BFS, DFS) usan std::unordered_set
+     * NOTA: Los algoritmos de recorrido (BFS, DFS) usan DS::HashSet
      * para la lista 'visited' (logrando O(N+E) promedio). Esto requiere
      * que el tipo T sea "hasheable" (tenga una especialización de std::hash<T>
      * y un operador ==). Si T no es hasheable, se debe reemplazar
-     * std::unordered_set por std::set en esos métodos (la complejidad
+     * DS::HashSet por std::set en esos métodos (la complejidad
      * cambiará a O((N + E) log N)).
      */
 
@@ -28,13 +28,13 @@ namespace Algorithms {
      * @note Complejidad: O(N + E) (promedio) para el recorrido total.
      */
     template <typename T>
-    void dfs_recursive(const DS::Graph<T>& graph, const T& node, std::unordered_set<T>& visited) {
+    void dfs_recursive(const DS::Graph<T>& graph, const T& node, DS::HashSet<T>& visited) {
         visited.insert(node);
         std::cout << node << " ";
 
         try {
             for (const auto& edge : graph.get_neighbors(node)) {
-                if (visited.find(edge.to) == visited.end()) {
+                if (!visited.contains(edge.to)) {
                     dfs_recursive(graph, edge.to, visited);
                 }
             }
@@ -49,7 +49,7 @@ namespace Algorithms {
      * @param start_node El nodo desde el cual comenzar el recorrido.
      * @throws std::runtime_error si el nodo inicial no existe.
      * Requiere que T sea hasheable.
-     * @note Complejidad: O(N + E) (promedio, usando unordered_set).
+     * @note Complejidad: O(N + E) (promedio, usando HashSet).
      */
     template <typename T>
     void dfs(const DS::Graph<T>& graph, const T& start_node) {
@@ -57,7 +57,7 @@ namespace Algorithms {
             throw std::runtime_error("dfs(): El nodo inicial de DFS no existe.");
         }
 
-        std::unordered_set<T> visited;
+        DS::HashSet<T> visited;
         std::cout << "DFS desde " << start_node << ": ";
         dfs_recursive(graph, start_node, visited);
         std::cout << std::endl;
@@ -69,7 +69,7 @@ namespace Algorithms {
      * @param start_node El nodo desde el cual comenzar el recorrido.
      * @throws std::runtime_error si el nodo inicial no existe.
      * @note Requiere que T sea hasheable.
-     * @note Complejidad: O(N + E) (promedio, usando unordered_set).
+     * @note Complejidad: O(N + E) (promedio, usando HashSet).
      */
     template <typename T>
     void bfs(const DS::Graph<T>& graph, const T& start_node) {
@@ -77,7 +77,7 @@ namespace Algorithms {
             throw std::runtime_error("bfs(): El nodo inicial de BFS no existe.");
         }
 
-        std::unordered_set<T> visited;
+        DS::HashSet<T> visited;
         DS::Queue<T> q;
 
         q.push(start_node);
@@ -91,7 +91,7 @@ namespace Algorithms {
 
             try {
                 for (const auto& edge : graph.get_neighbors(current_node)) {
-                    if (visited.find(edge.to) == visited.end()) {
+                    if (!visited.contains(edge.to)) {
                         visited.insert(edge.to);
                         q.push(edge.to);
                     }

@@ -13,7 +13,9 @@ Implementaciones de contenedores genéricos, la mayoría siguiendo la **Rule of 
 - `Queue`: Una cola FIFO (First-In, First-Out) implementada sobre una lista enlazada con punteros head y tail para operaciones O(1).
 - `PriorityQueue`: Una cola de prioridad basada en un Min-Heap, implementada sobre `DS::Vector`.
 - `BinarySearchTree`: Un Árbol Binario de Búsqueda (BST) que soporta inserción, eliminación, búsqueda y varios tipos de recorridos (In-Orden, Pre-Orden, Post-Orden y Nivel-Orden).
+- `AVLTree`: Un Árbol AVL (auto-balanceable) que garantiza operaciones O(log n) en el peor de los casos mediante rotaciones de balanceo.
 - `HashMap`: Una tabla hash genérica que utiliza **encadenamiento separado** (con DS::LinkedList) para manejar colisiones y rehashing automático basado en factor de carga.
+- `HashSet`: Un conjunto hash genérico implementado como un adaptador sobre DS::HashMap, proporcionando inserción y búsqueda en O(1) promedio.
 - `Graph`: Una clase de grafo genérica que soporta grafos dirigidos/no dirigidos y ponderados/no ponderados, implementada con una lista de adyacencia sobre DS::HashMap.
 
 ---
@@ -69,7 +71,8 @@ Una exploración de modelos computacionales fundamentales, construida sobre las 
 ### 🏗️ Por implementar
 
 Aún faltan varias estructuras, algoritmos y utilidades que me gustaría implementar. Por ejemplo:
-- `HashSet`
+- `Set`
+- `Map`
 - `Deque`
 - `Pair`
 - Algoritmos de Prim, Kruskal y Floyd-Warshall.
