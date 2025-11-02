@@ -38,7 +38,7 @@ namespace DS {
         // Tipo para el par (Clave, Valor) almacenado en las listas
         using PairType = std::pair<const K, V>;
         // Tipo para el "cubo" (bucket), que es una lista de pares
-        using BucketType = DS::LinkedList<PairType>;
+        using BucketType = LinkedList<PairType>;
 
         // -----------------------------------------------------------------
         // Constructores
@@ -124,17 +124,14 @@ namespace DS {
          * @param value El valor.
          * @note Complejidad:
          * - Promedio: O(1) amortizado (gracias al rehashing).
-         * - Peor caso: O(n) (si ocurre un rehash o si todas las claves
-         * colisionan en el mismo cubo).
+         * - Peor caso: O(k) donde k es la longitud de la cadena de colisión.
          */
         void insert(const K& key, const V& value) {
-            // Buscar si la clave ya existe
             size_t index = get_bucket_index(key);
-            BucketType& bucket = buckets_[index]; // Obtiene la LinkedList
+            BucketType& bucket = buckets_[index];
 
             // Iterar sobre la lista de colisiones
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                PairType& pair = bucket.get(i); // get() es O(i)
+            for (PairType& pair : bucket) {
                 if (key_equal_(pair.first, key)) {
                     // Clave encontrada: actualizar el valor y salir
                     pair.second = value;
@@ -142,16 +139,12 @@ namespace DS {
                 }
             }
 
-            // Si la clave no se encontró, proceder a insertar
-
-            // Verificar si necesitamos redimensionar (rehash) antes de insertar
+            // Clave no encontrada, proceder a insertar
             if ((static_cast<double>(size_ + 1) / buckets_.size()) > max_load_factor_) {
                 rehash(buckets_.size() * 2);
-                // Recalcular el índice, ya que el tamaño del array cambió
-                index = get_bucket_index(key);
+                index = get_bucket_index(key); // Recalcular índice
             }
 
-            // Insertar el nuevo par (K, V) en el cubo correspondiente
             buckets_[index].push_back({key, value}); // push_back es O(1)
             size_++;
         }
@@ -164,23 +157,32 @@ namespace DS {
          * @note Complejidad:
          * - Promedio: O(1).
          * - Peor caso: O(k) donde k es el tamaño de la cadena de colisión
-         * (o O(n) en el peor caso de hash).
          */
         bool remove(const K& key) {
             size_t index = get_bucket_index(key);
-            BucketType& bucket = buckets_[index]; //
+            BucketType& bucket = buckets_[index];
 
-            // Iterar sobre la lista de colisiones
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                if (key_equal_(bucket.get(i).first, key)) { // get() es O(i)
-                    // Clave encontrada: eliminar de la lista
-                    bucket.remove_at(i); // remove_at() es O(i)
+            // Usar un iterador 'prev' para poder llamar a erase_after(prev)
+            auto it = bucket.begin();
+            auto prev_it = bucket.end(); // Inicialmente no hay 'prev'
+
+            while (it != bucket.end()) {
+                if (key_equal_((*it).first, key)) {
+                    // Clave encontrada
+                    if (prev_it == bucket.end()) {
+                        // Es el primer nodo (head)
+                        bucket.pop_front(); // O(1)
+                    } else {
+                        // Es un nodo en medio o al final
+                        bucket.erase_after(prev_it); // O(1)
+                    }
                     size_--;
                     return true;
                 }
+                prev_it = it;
+                ++it;
             }
-            // No se encontró la clave
-            return false;
+            return false; // No se encontró la clave
         }
 
         /**
@@ -212,11 +214,11 @@ namespace DS {
          */
         bool contains(const K& key) const {
             size_t index = get_bucket_index(key);
-            const BucketType& bucket = buckets_[index]; //
+            const BucketType& bucket = buckets_[index];
 
             // Iterar sobre la lista de colisiones
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                if (key_equal_(bucket.get(i).first, key)) { // get() es O(i)
+            for (const PairType& pair : bucket) {
+                if (key_equal_(pair.first, key)) {
                     return true; // Clave encontrada
                 }
             }
@@ -248,17 +250,15 @@ namespace DS {
          */
         V& at(const K& key) {
             size_t index = get_bucket_index(key);
-            BucketType& bucket = buckets_[index]; //
+            BucketType& bucket = buckets_[index];
 
             // Iterar sobre la lista de colisiones
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                PairType& pair = bucket.get(i); // get() es O(i)
+            for (PairType& pair : bucket) {
                 if (key_equal_(pair.first, key)) {
-                    return pair.second; // Clave encontrada, retorna referencia
+                    return pair.second; // Clave encontrada
                 }
             }
-            // No se encontró la clave
-            throw std::out_of_range("HashMap::get(): Clave no encontrada.");
+            throw std::out_of_range("HashMap::at(): Clave no encontrada.");
         }
 
         /**
@@ -270,15 +270,34 @@ namespace DS {
          */
         const V& at(const K& key) const {
             size_t index = get_bucket_index(key);
-            const BucketType& bucket = buckets_[index]; //
+            const BucketType& bucket = buckets_[index];
 
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                const PairType& pair = bucket.get(i); // get() es O(i)
+            for (const PairType& pair : bucket) {
                 if (key_equal_(pair.first, key)) {
                     return pair.second;
                 }
             }
-            throw std::out_of_range("HashMap::get() (const): Clave no encontrada.");
+            throw std::out_of_range("HashMap::at() (const): Clave no encontrada.");
+        }
+
+        /**
+         * @brief Retorna un vector con todas las claves del mapa.
+         * @return DS::Vector<K> Un vector con todas las claves.
+         * @note Complejidad: O(N + M) donde N es el número de cubos
+         * y M es el número total de elementos.
+         */
+        Vector<K> get_all_keys() const {
+            Vector<K> keys_vector;
+            keys_vector.reserve(size_);
+
+            // Recorrer cada cubo (bucket)
+            for (size_t i = 0; i < buckets_.size(); ++i) {
+                // Usar el iterador de LinkedList (O(k) por cubo)
+                for (const PairType& pair : buckets_[i]) {
+                    keys_vector.push_back(pair.first);
+                }
+            }
+            return keys_vector;
         }
 
         /**
@@ -297,22 +316,19 @@ namespace DS {
         V& operator[](const K& key) {
             // Intentar encontrar la clave
             size_t index = get_bucket_index(key);
-            BucketType& bucket = buckets_[index]; //
+            BucketType& bucket = buckets_[index];
 
-            for (int i = 0; i < bucket.get_size(); ++i) {
-                PairType& pair = bucket.get(i); // get() es O(i)
+            // Buscar la clave
+            for (PairType& pair : bucket) {
                 if (key_equal_(pair.first, key)) {
                     return pair.second; // Clave encontrada
                 }
             }
 
-            // Si la clave no es encontrada, insertar con valor por defecto
-
-            // Verificar rehash
+            // Clave no encontrada, insertar con valor por defecto
             if ((static_cast<double>(size_ + 1) / buckets_.size()) > max_load_factor_) {
                 rehash(buckets_.size() * 2);
-                // Recalcular índice
-                index = get_bucket_index(key);
+                index = get_bucket_index(key); // Recalcular índice
             }
 
             // Insertar el nuevo par (key, V{})
@@ -321,12 +337,11 @@ namespace DS {
             size_++;
 
             // Retornar la referencia al valor recién insertado
-            return buckets_[index].get(buckets_[index].get_size() - 1).second; //
+            return buckets_[index].back().second;
         }
 
-
     private:
-        DS::Vector<BucketType> buckets_; // El array dinámico de cubos
+        Vector<BucketType> buckets_;     // El array dinámico de cubos
         size_t size_;                    // Número total de elementos (pares K, V)
         Hasher hasher_;                  // Instancia del 'functor' de hash
         KeyEqual key_equal_;             // Instancia del 'functor' de comparación
@@ -360,10 +375,10 @@ namespace DS {
         void rehash(size_t new_bucket_count) {
             // Mover el vector de cubos antiguo a una variable temporal
             // (std::move transfiere la propiedad sin copiar)
-            DS::Vector<BucketType> old_buckets = std::move(buckets_);
+            Vector<BucketType> old_buckets = std::move(buckets_);
 
             // Crear un nuevo vector de cubos vacío con el nuevo tamaño
-            buckets_ = DS::Vector<BucketType>(new_bucket_count); //
+            buckets_ = Vector<BucketType>(new_bucket_count);
 
             // Resetear el tamaño (los re-insertaremos)
             size_ = 0;
@@ -371,12 +386,8 @@ namespace DS {
             // Iterar sobre el antiguo vector de cubos
             for (size_t i = 0; i < old_buckets.size(); ++i) {
                 // Iterar sobre cada LinkedList en el cubo antiguo
-                BucketType& bucket = old_buckets[i]; //
-                for (int j = 0; j < bucket.get_size(); ++j) {
+                for (const PairType& pair : old_buckets[i]) {
                     // Re-insertar el elemento en la nueva tabla
-                    // (la función insert() calculará el nuevo índice)
-                    PairType& pair = bucket.get(j);
-                    // (Usamos insert(K,V) que ya maneja la lógica)
                     insert(pair.first, pair.second);
                 }
                 // La old_buckets[i] (LinkedList) se destruye aquí

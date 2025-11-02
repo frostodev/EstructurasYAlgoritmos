@@ -131,10 +131,19 @@ namespace DS {
             return map_.load_factor();
         }
 
+        /**
+         * @brief Retorna un vector con todos los elementos del conjunto.
+         * @return DS::Vector<K> Un vector con todos los elementos.
+         * @note Complejidad: O(N + M)
+         */
+        Vector<K> get_all_elements() const {
+            return map_.get_all_keys();
+        }
+
     private:
         // El HashMap interno que almacena los datos
         // Usamos <K, bool> donde bool es un valor ficticio
-        DS::HashMap<K, bool, Hasher, KeyEqual> map_;
+        HashMap<K, bool, Hasher, KeyEqual> map_;
     };
 
 }

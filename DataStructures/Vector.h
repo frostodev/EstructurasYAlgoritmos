@@ -18,6 +18,11 @@ namespace DS {
     template <typename T>
     class Vector {
     public:
+        // --- Typedefs de Iterador ---
+        // Un iterador para un vector contiguo es simplemente un puntero.
+        using iterator = T*;
+        using const_iterator = const T*;
+
         // -----------------------------------------------------------------
         // Constructores y Destructor
         // -----------------------------------------------------------------
@@ -353,6 +358,58 @@ namespace DS {
          */
         bool empty() const {
             return size_ == 0;
+        }
+
+        // -----------------------------------------------------------------
+        // Métodos de Iterador
+        // -----------------------------------------------------------------
+
+        /**
+         * @brief Retorna un iterador al principio.
+         * @note Complejidad: O(1)
+         */
+        iterator begin() {
+            return data_; // Puntero al primer elemento
+        }
+
+        /**
+         * @brief Retorna un iterador al final (uno después del último).
+         * @note Complejidad: O(1)
+         */
+        iterator end() {
+            return data_ + size_; // Puntero uno después del último
+        }
+
+        /**
+         * @brief Retorna un iterador constante al principio.
+         * @note Complejidad: O(1)
+         */
+        const_iterator begin() const {
+            return data_;
+        }
+
+        /**
+         * @brief Retorna un iterador constante al final.
+         * @note Complejidad: O(1)
+         */
+        const_iterator end() const {
+            return data_ + size_;
+        }
+
+        /**
+         * @brief Retorna un iterador constante al principio (cbegin).
+         * @note Complejidad: O(1)
+         */
+        const_iterator cbegin() const {
+            return data_;
+        }
+
+        /**
+         * @brief Retorna un iterador constante al final (cend).
+         * @note Complejidad: O(1)
+         */
+        const_iterator cend() const {
+            return data_ + size_;
         }
 
     private:

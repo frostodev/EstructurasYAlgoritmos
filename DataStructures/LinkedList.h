@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <iterator>
 
 namespace DS {
 
@@ -19,7 +20,122 @@ namespace DS {
      */
     template <typename T>
     class LinkedList {
+    private:
+        /**
+         * @struct Node
+         * @brief Estructura interna que representa un nodo en la lista.
+         * Contiene el dato y un puntero al siguiente nodo.
+         */
+        struct Node {
+            T data;
+            Node* next;
+
+            /**
+             * @brief Constructor del Nodo
+             * @param val El valor (dato) a almacenar en el nodo.
+             */
+            explicit Node(const T& val) : data(val), next(nullptr) {}
+        };
+
+        Node* head_;  // Puntero al primer nodo de la lista
+        Node* tail_;  // Puntero al último nodo (para inserciones O(1) al final)
+        int count_;   // Número de elementos en la lista
+
     public:
+        // -----------------------------------------------------------------
+        // Clase Iterator
+        // -----------------------------------------------------------------
+
+        class iterator {
+        public:
+            // Tags de tipo de iterador (requeridos por C++)
+            using iterator_category = std::forward_iterator_tag;
+            using value_type = T;
+            using difference_type = std::ptrdiff_t;
+            using pointer = T*;
+            using reference = T&;
+
+            friend class LinkedList;
+
+        private:
+            Node* current_node;
+
+        public:
+            iterator(Node* node) : current_node(node) {}
+
+            // Dereferencia: *it
+            reference operator*() const {
+                return current_node->data;
+            }
+
+            // Acceso a miembros: it->
+            pointer operator->() const {
+                return &(current_node->data);
+            }
+
+            // Pre-incremento: ++it
+            iterator& operator++() {
+                current_node = current_node->next;
+                return *this;
+            }
+
+            // Post-incremento: it++
+            iterator operator++(int) {
+                iterator temp = *this;
+                ++(*this);
+                return temp;
+            }
+
+            // Comparación: it == other
+            bool operator==(const iterator& other) const {
+                return current_node == other.current_node;
+            }
+
+            // Comparación: it != other
+            bool operator!=(const iterator& other) const {
+                return current_node != other.current_node;
+            }
+        };
+
+        class const_iterator {
+        public:
+            using iterator_category = std::forward_iterator_tag;
+            using value_type = const T;
+            using difference_type = std::ptrdiff_t;
+            using pointer = const T*;
+            using reference = const T&;
+
+            friend class LinkedList;
+
+        private:
+            const Node* current_node;
+
+        public:
+            explicit const_iterator(const Node* node) : current_node(node) {}
+
+            reference operator*() const { return current_node->data; }
+            pointer operator->() const { return &(current_node->data); }
+
+            const_iterator& operator++() {
+                current_node = current_node->next;
+                return *this;
+            }
+
+            const_iterator operator++(int) {
+                const_iterator temp = *this;
+                ++(*this);
+                return temp;
+            }
+
+            bool operator==(const const_iterator& other) const {
+                return current_node == other.current_node;
+            }
+
+            bool operator!=(const const_iterator& other) const {
+                return current_node != other.current_node;
+            }
+        };
+
         // -----------------------------------------------------------------
         // Constructores y Destructor
         // -----------------------------------------------------------------
@@ -307,6 +423,29 @@ namespace DS {
         }
 
         /**
+         * @brief Elimina el nodo *después* del iterador 'pos'.
+         * @param pos El iterador que apunta al nodo *anterior* al que se va a borrar.
+         * @note Complejidad: O(1)
+         */
+        void erase_after(iterator pos) {
+            if (pos.current_node == nullptr || pos.current_node->next == nullptr) {
+                // No se puede borrar después del último nodo o de end()
+                return;
+            }
+
+            Node* node_to_delete = pos.current_node->next;
+            pos.current_node->next = node_to_delete->next;
+
+            // Si estábamos borrando el nodo cola, actualizar tail_
+            if (node_to_delete == tail_) {
+                tail_ = pos.current_node;
+            }
+
+            delete node_to_delete;
+            count_--;
+        }
+
+        /**
          * @brief Elimina todos los nodos de la lista.
          * @note Complejidad: O(n)
          */
@@ -366,6 +505,33 @@ namespace DS {
             return current->data;
         }
 
+        /**
+         * @brief Obtiene una referencia al último elemento.
+         * @return T& Referencia al dato en el último nodo.
+         * @throws std::out_of_range si la lista está vacía.
+         * @note Complejidad: O(1)
+         */
+        T& back() {
+            if (is_empty()) {
+                throw std::out_of_range("LinkedList::back(): La lista está vacía.");
+            }
+            return tail_->data;
+        }
+
+        /**
+         * @brief Obtiene una referencia constante al último elemento.
+         * @return const T& Referencia constante al dato en el último nodo.
+         * @throws std::out_of_range si la lista está vacía.
+         * @note Complejidad: O(1)
+         */
+        const T& back() const {
+            if (is_empty()) {
+                throw std::out_of_range("LinkedList::back() (const): La lista está vacía.");
+            }
+            return tail_->data;
+        }
+
+
         // -----------------------------------------------------------------
         // Utilidades
         // -----------------------------------------------------------------
@@ -384,26 +550,57 @@ namespace DS {
             std::cout << "nullptr" << std::endl;
         }
 
-    private:
+        // -----------------------------------------------------------------
+        // Métodos de Iterador
+        // -----------------------------------------------------------------
+
         /**
-         * @struct Node
-         * @brief Estructura interna que representa un nodo en la lista.
-         * Contiene el dato y un puntero al siguiente nodo.
+         * @brief Retorna un iterador al principio.
+         * @note Complejidad: O(1)
          */
-        struct Node {
-            T data;
-            Node* next;
+        iterator begin() {
+            return iterator(head_);
+        }
 
-            /**
-             * @brief Constructor del Nodo
-             * @param val El valor (dato) a almacenar en el nodo.
-             */
-            explicit Node(const T& val) : data(val), next(nullptr) {}
-        };
+        /**
+         * @brief Retorna un iterador al final (uno después del último).
+         * @note Complejidad: O(1)
+         */
+        iterator end() {
+            return iterator(nullptr); // El iterador 'end' apunta a null
+        }
 
-        Node* head_;  // Puntero al primer nodo de la lista
-        Node* tail_;  // Puntero al último nodo (para inserciones O(1) al final)
-        int count_;   // Número de elementos en la lista
+        /**
+         * @brief Retorna un iterador constante al principio.
+         * @note Complejidad: O(1)
+         */
+        const_iterator begin() const {
+            return const_iterator(head_);
+        }
+
+        /**
+         * @brief Retorna un iterador constante al final.
+         * @note Complejidad: O(1)
+         */
+        const_iterator end() const {
+            return const_iterator(nullptr);
+        }
+
+        /**
+         * @brief Retorna un iterador constante al principio (cbegin).
+         * @note Complejidad: O(1)
+         */
+        const_iterator cbegin() const {
+            return const_iterator(head_);
+        }
+
+        /**
+         * @brief Retorna un iterador constante al final (cend).
+         * @note Complejidad: O(1)
+         */
+        const_iterator cend() const {
+            return const_iterator(nullptr);
+        }
 
     };
 

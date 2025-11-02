@@ -3,8 +3,8 @@
 #define FINITE_AUTOMATON_H
 
 #include "../DataStructures/HashMap.h"
+#include "../DataStructures/HashSet.h"
 
-#include <set>
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
@@ -46,7 +46,7 @@ namespace Automata {
         /**
          * @brief Añade un estado al conjunto Q.
          * @param state El estado a añadir.
-         * @note Complejidad: O(log N_states)
+         * @note Complejidad: O(1) amortizado
          */
         void add_state(const StateType& state) {
             states_.insert(state);
@@ -55,7 +55,7 @@ namespace Automata {
         /**
          * @brief Añade un símbolo al alfabeto Σ.
          * @param symbol El símbolo a añadir.
-         * @note Complejidad: O(log N_symbols)
+         * @note Complejidad: O(1) amortizado
          */
         void add_symbol(const SymbolType& symbol) {
             alphabet_.insert(symbol);
@@ -65,10 +65,10 @@ namespace Automata {
          * @brief Define el estado inicial q₀.
          * @param state El estado inicial.
          * @throws std::invalid_argument si el estado no existe en Q.
-         * @note Complejidad: O(log N_states)
+         * @note Complejidad: O(1) amortizado
          */
         void set_start_state(const StateType& state) {
-            if (states_.find(state) == states_.end()) {
+            if (!states_.contains(state)) {
                 throw std::invalid_argument("set_start_state(): El estado inicial debe existir en el conjunto de estados.");
             }
             start_state_ = state;
@@ -78,10 +78,10 @@ namespace Automata {
          * @brief Marca un estado como final (lo añade a F).
          * @param state El estado a marcar como final.
          * @throws std::invalid_argument si el estado no existe en Q.
-         * @note Complejidad: O(log N_states)
+         * @note Complejidad: O(1) amortizado
          */
         void add_final_state(const StateType& state) {
-            if (states_.find(state) == states_.end()) {
+            if (!states_.contains(state)) {
                 throw std::invalid_argument("add_final_state(): El estado final debe existir en el conjunto de estados.");
             }
             final_states_.insert(state);
@@ -97,10 +97,10 @@ namespace Automata {
          * @note Complejidad: O(1) promedio (gracias a DS::HashMap).
          */
         void add_transition(const StateType& from_state, const SymbolType& on_symbol, const StateType& to_state) {
-            if (states_.find(from_state) == states_.end() || states_.find(to_state) == states_.end()) {
+            if (!states_.contains(from_state) || !states_.contains(to_state)) {
                 throw std::invalid_argument("add_transition(): Los estados 'from' y 'to' deben existir en el conjunto de estados.");
             }
-            if (alphabet_.find(on_symbol) == alphabet_.end()) {
+            if (!alphabet_.contains(on_symbol)) {
                 throw std::invalid_argument("add_transition(): El símbolo debe existir en el alfabeto.");
             }
             
@@ -118,7 +118,6 @@ namespace Automata {
          * @param input La cadena de símbolos a procesar.
          * @return true si la cadena es aceptada, false en caso contrario.
          * @note Complejidad: O(L) donde L es la longitud de la cadena 'input'
-         * (asumiendo O(1) promedio para DS::HashMap::at()/contains()).
          */
         template <typename StringType>
         bool accepts(const StringType& input) const {
@@ -126,7 +125,7 @@ namespace Automata {
 
             for (const SymbolType& symbol : input) {
                 // Verificar que el símbolo esté en el alfabeto
-                if (alphabet_.find(symbol) == alphabet_.end()) {
+                if (!alphabet_.contains(symbol)) {
                     // Símbolo no reconocido, rechazar
                     return false; 
                 }
@@ -144,8 +143,7 @@ namespace Automata {
             }
 
             // Al final de la cadena, verificar si el estado actual es un estado final
-            // final_states_ es un std::set, .count() es O(log N_states) pero N_states es << L
-            return final_states_.count(current_state) > 0;
+            return final_states_.contains(current_state);
         }
 
         /**
@@ -157,12 +155,18 @@ namespace Automata {
             
             // Imprimir Q (Estados)
             std::cout << "Q = { ";
-            for (const auto& state : states_) std::cout << state << " ";
+            DS::Vector<StateType> all_states = states_.get_all_elements();
+            for (size_t i = 0; i < all_states.size(); ++i) {
+                std::cout << all_states[i] << " ";
+            }
             std::cout << "}" << std::endl;
             
             // Imprimir Σ (Alfabeto)
             std::cout << "Σ = { ";
-            for (const auto& symbol : alphabet_) std::cout << "'" << symbol << "' ";
+            DS::Vector<SymbolType> all_symbols = alphabet_.get_all_elements();
+            for (size_t i = 0; i < all_symbols.size(); ++i) {
+                std::cout << "'" << all_symbols[i] << "' ";
+            }
             std::cout << "}" << std::endl;
             
             // Imprimir q₀ (Estado Inicial)
@@ -170,15 +174,22 @@ namespace Automata {
 
             // Imprimir F (Estados Finales)
             std::cout << "F = { ";
-            for (const auto& state : final_states_) std::cout << state << " ";
+            DS::Vector<StateType> final_states_vec = final_states_.get_all_elements();
+            for (size_t i = 0; i < final_states_vec.size(); ++i) {
+                std::cout << final_states_vec[i] << " ";
+            }
             std::cout << "}" << std::endl;
 
             // Imprimir δ (Transiciones)
-            // Nota: Se itera sobre estados y símbolos conocidos ya que DS::HashMap no expone iteradores
             std::cout << "δ (Transiciones):" << std::endl;
-            for (const auto& from_state : states_) {
+            // (all_states y all_symbols ya los obtuvimos arriba)
+            for (size_t i_state = 0; i_state < all_states.size(); ++i_state) {
+                const StateType& from_state = all_states[i_state];
+
                 if (transitions_.contains(from_state)) {
-                    for (const auto& symbol : alphabet_) {
+                    for (size_t i_sym = 0; i_sym < all_symbols.size(); ++i_sym) {
+                        const SymbolType& symbol = all_symbols[i_sym];
+
                         if (transitions_.at(from_state).contains(symbol)) {
                             StateType to_state = transitions_.at(from_state).at(symbol);
                             std::cout << "  δ(" << from_state << ", '" << symbol << "') = " << to_state << std::endl;
@@ -191,10 +202,10 @@ namespace Automata {
 
     private:
         // Q (Estados)
-        std::set<StateType> states_;
+        DS::HashSet<StateType> states_;
         
         // Σ (Alfabeto)
-        std::set<SymbolType> alphabet_;
+        DS::HashSet<SymbolType> alphabet_;
         
         // δ (Función de Transición)
         DS::HashMap<StateType, DS::HashMap<SymbolType, StateType>> transitions_;
@@ -203,7 +214,7 @@ namespace Automata {
         StateType start_state_;
 
         // F (Estados Finales)
-        std::set<StateType> final_states_;
+        DS::HashSet<StateType> final_states_;
     };
 
 }
