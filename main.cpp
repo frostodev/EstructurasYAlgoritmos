@@ -4,6 +4,7 @@
 #include "Test/TestAVLTree.h"
 
 #include "Test/TestMatrix.h"
+#include "Test/TestTensor3D.h"
 #include "Test/TestFiniteAutomaton.h"
 #include "Test/TestSimplex.h"
 
@@ -14,6 +15,7 @@ int main() {
     Test::test_avl_tree();
 
     Test::test_matrix();
+    Test::test_tensor3d();
     Test::test_finite_automaton();
     Test::test_simplex();
 

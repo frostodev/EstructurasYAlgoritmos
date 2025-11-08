@@ -48,6 +48,8 @@ Una librería matemática construida desde cero, usando `concepts` de C++ 20 par
     - Operaciones elementales de fila y columna.
     - Cálculo de determinante mediante eliminación Gaussiana.
     - Multiplicación de matrices clásica y método de Strassen.
+- **Tensores**:
+    - `Tensor3D`: Una implementación de un "cubo" 3D (Z, Y, X) con almacenamiento 1D contiguo.
 - **Funciones trigonométricas**:
     - Implementaciones de `sin`, `cos` y `tan` usando **series de Taylor** y reducción de rango.
     - Implementaciones de `asin`, `acos`, `atan` y `atan2` usando identidades.
