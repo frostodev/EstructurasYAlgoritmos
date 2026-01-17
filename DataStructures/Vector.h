@@ -329,6 +329,24 @@ namespace DS {
             return !(*this == other);
         }
 
+        /**
+         * @brief Retorna un puntero al array de datos subyacente.
+         * @return T* Puntero al primer elemento del array.
+         * @note Complejidad: O(1)
+         */
+        T* data() noexcept {
+            return data_;
+        }
+
+        /**
+         * @brief Retorna un puntero constante al array de datos subyacente.
+         * @return const T* Puntero constante al primer elemento del array.
+         * @note Complejidad: O(1)
+         */
+        const T* data() const noexcept {
+            return data_;
+        }
+
         // -----------------------------------------------------------------
         // Capacidad
         // -----------------------------------------------------------------
@@ -338,6 +356,7 @@ namespace DS {
          * @return size_t El número de elementos.
          * @note Complejidad: O(1)
          */
+        [[nodiscard]]
         size_t size() const {
             return size_;
         }
@@ -347,6 +366,7 @@ namespace DS {
          * @return size_t La capacidad.
          * @note Complejidad: O(1)
          */
+        [[nodiscard]]
         size_t capacity() const {
             return capacity_;
         }
@@ -356,6 +376,7 @@ namespace DS {
          * @return true si size_ == 0, false en caso contrario.
          * @note Complejidad: O(1)
          */
+        [[nodiscard]]
         bool empty() const {
             return size_ == 0;
         }

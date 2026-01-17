@@ -63,6 +63,7 @@ namespace Math {
          * @return El número de filas ('rows_').
          * @note: Complejidad: O(1)
          */
+        [[nodiscard]]
         size_t rows() const {
             return rows_;
         }
@@ -72,6 +73,7 @@ namespace Math {
          * @return El número de columnas ('cols_').
          * @note: Complejidad: O(1)
          */
+        [[nodiscard]]
         size_t cols() const {
             return cols_;
         }
@@ -81,6 +83,7 @@ namespace Math {
          * @return El tamaño total ('size_'), igual a 'rows * cols'.
          * @note: Complejidad: O(1)
          */
+        [[nodiscard]]
         size_t size() const {
             return size_;
         }
@@ -136,6 +139,45 @@ namespace Math {
             for (size_t i = 0; i < size_; ++i) {
                 data_[i] = T{}; // T{} es el valor "cero"
             }
+        }
+
+        /**
+         * @brief Accede al elemento de la matriz en la posición (i, j).
+         *
+         * Proporciona acceso con comprobación de límites.
+         * Lanza una excepción si los índices están fuera del rango válido.
+         *
+         * @param i Índice de la fila (0 ≤ i < número de filas).
+         * @param j Índice de la columna (0 ≤ j < número de columnas).
+         * @return Referencia al elemento en la posición (i, j).
+         *
+         * @throw std::out_of_range Si i o j están fuera de los límites de la matriz.
+         */
+        T& at(size_t i, size_t j) {
+            if (i >= rows_ || j >= cols_) {
+                throw std::out_of_range("Matrix::at(): Índices fuera de rango.");
+            }
+            return data_[i * cols_ + j];
+        }
+
+        /**
+         * @brief Accede al elemento de la matriz en la posición (i, j) (versión constante).
+         *
+         * Proporciona acceso de solo lectura con comprobación de límites.
+         * Lanza una excepción si los índices están fuera del rango válido.
+         *
+         * @param i Índice de la fila (0 ≤ i < número de filas).
+         * @param j Índice de la columna (0 ≤ j < número de columnas).
+         * @return Referencia constante al elemento en la posición (i, j).
+         *
+         * @throw std::out_of_range Si i o j están fuera de los límites de la matriz.
+         */
+        [[nodiscard]]
+        const T& at(size_t i, size_t j) const {
+            if (i >= rows_ || j >= cols_) {
+                throw std::out_of_range("Matrix::at(): Índices fuera de rango.");
+            }
+            return data_[i * cols_ + j];
         }
 
         // -----------------------------------------------------------------
@@ -278,6 +320,7 @@ namespace Math {
          * @throw std::runtime_error Si la matriz no es cuadrada.
          * @note Complejidad: O(n^3) en el peor caso, O(1) para 1x1 y 2x2
          */
+        [[nodiscard]]
         T determinant() const {
             if (rows_ != cols_) {
                 throw std::runtime_error("Matrix::determinant(): El determinante solo se puede calcular para matrices cuadradas");
@@ -490,17 +533,30 @@ namespace Math {
          * @return Matrix La matriz resultante del producto (dimensiones 'n x p').
          * @note Complejidad: O(n*m*p)
          */
+        [[nodiscard]]
         Matrix classical_mul(const Matrix& other) const {
             const size_t n = rows_;
             const size_t m = cols_; // == other.rows_
             const size_t p = other.cols_;
 
             Matrix result(n, p);
+
+            const T* A_ptr = data_.data();
+            const T* B_ptr = other.data_.data();
+            T* R_ptr = result.data_.data();
+
             for (size_t i = 0; i < n; ++i) {
+                // Pre-calcular el offset de la fila i de A y R para no multiplicarlo en cada k
+                const size_t row_A_offset = i * m;
+                const size_t row_R_offset = i * p;
+
                 for (size_t k = 0; k < m; ++k) {
-                    T aik = (*this)(i, k); // Optimización: sacar de bucle interno
+                    // T aik = (*this)(i, k);
+                    T aik = A_ptr[row_A_offset + k];
+                    const size_t row_B_offset = k * p;
                     for (size_t j = 0; j < p; ++j) {
-                        result(i, j) += aik * other(k, j);
+                        // result(i, j) += aik * other(k, j);
+                        R_ptr[row_R_offset + j] += aik * B_ptr[row_B_offset + j];
                     }
                 }
             }
@@ -523,6 +579,7 @@ namespace Math {
          * @return La matriz resultante del producto (dimensiones 'n x p').
          * @note Complejidad: O(n^2.81) (junto a strassen_recursive())
          */
+        [[nodiscard]]
         Matrix strassen_mul(const Matrix& other) const {
             const size_t n = rows_;
             const size_t m = cols_; // == other.rows_
@@ -632,6 +689,7 @@ namespace Math {
          * @return Matrix La matriz producto (n x n).
          * @note Ecuación de recurrencia: T(n) = 7 * T(n/2) + O(n^2)
          */
+        [[nodiscard]]
         Matrix strassen_recursive(const Matrix& A, const Matrix& B) const {
             const size_t n = A.rows(); // A y B son n x n
 
