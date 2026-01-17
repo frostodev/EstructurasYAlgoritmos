@@ -26,6 +26,7 @@ add_executable(EstructurasYAlgoritmos
         Math/MathUtils.h
         Math/MathUtils.cpp
         Math/Matrix.h
+        Math/Tensor3D.h
         Math/Trigonometry.h
         Math/Trigonometry.cpp
         Math/Vector2.h
@@ -39,6 +40,8 @@ add_executable(EstructurasYAlgoritmos
         Test/TestAVLTree.cpp
         Test/TestMatrix.cpp
         Test/TestMatrix.h
+        Test/TestTensor3D.h
+        Test/TestTensor3D.cpp
         Test/TestFiniteAutomaton.h
         Test/TestFiniteAutomaton.cpp
         Test/TestSimplex.h
