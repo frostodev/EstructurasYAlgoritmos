@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 31
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build/${presetName}"
+    },
+    {
+      "name": "dev-debug",
+      "displayName": "Desarrollo (Debug)",
+      "description": "Sin optimización, con símbolos de debug.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-std",
+      "displayName": "Release Estándar",
+      "description": "Optimización O3 estándar.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "release-aggressive",
+      "displayName": "Ultra Optimizado (Aggressive)",
+      "description": "O3 + Native Arch + Fast Math + LTO.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Aggressive"
+      }
+    }
+  ]
+}

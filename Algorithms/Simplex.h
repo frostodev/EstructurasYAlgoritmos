@@ -147,13 +147,13 @@ namespace Algorithms {
 
             for (size_t i = 0; i < num_rows; ++i) { // Buscar en la columna j
                 double val = tableau(i, j);
-                if (Math::fabs(val - 1.0) < std::numeric_limits<double>::epsilon()) {
+                if (Math::abs(val - 1.0) < std::numeric_limits<double>::epsilon()) {
                     if (basic_row != -1) {
                         is_basic = false; // Más de un '1', no es básica
                         break;
                     }
                     basic_row = static_cast<int>(i);
-                } else if (Math::fabs(val) > std::numeric_limits<double>::epsilon()) {
+                } else if (Math::abs(val) > std::numeric_limits<double>::epsilon()) {
                     is_basic = false; // Un valor que no es '0' ni '1', no es básica
                     break;
                 }

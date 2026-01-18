@@ -164,7 +164,7 @@ namespace Math {
         // La serie de Taylor converge rápido solo en [-1, 1].
         // Usamos identidades para mapear valores fuera de este rango.
 
-        if (Math::fabs(x) > 1.0) {
+        if (Math::abs(x) > 1.0) {
             // Usar identidad:
             // atan(x) = PI/2 - atan(1/x)       (para x > 1)
             // atan(x) = -PI/2 - atan(1/x)      (para x < -1)

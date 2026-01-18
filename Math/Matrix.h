@@ -361,10 +361,10 @@ namespace Math {
 
                 // Pivoteo Parcial:
                 size_t max_row = j;
-                long double max_val = fabsl(temp(j, j));
+                long double max_val = Math::abs(temp(j, j));
 
                 for (size_t k = j + 1; k < n; ++k) {
-                    long double current_val = fabsl(temp(k, j));
+                    long double current_val = Math::abs(temp(k, j));
                     if (current_val > max_val) {
                         max_val = current_val;
                         max_row = k;
@@ -402,6 +402,183 @@ namespace Math {
             return static_cast<T>(determinant_value);
         }
 
+        /**
+         * @brief Calcula la inversa de la matriz utilizando Gauss-Jordan.
+         *
+         * Transforma la matriz original en la Identidad mientras aplica las mismas
+         * operaciones a una matriz Identidad inicial, resultando en la inversa.
+         *
+         * @return Matrix La matriz inversa.
+         * @throw std::runtime_error Si la matriz no es cuadrada o es singular (determinante 0).
+         * @note Requiere que T sea un tipo de punto flotante (float, double).
+         * @note Complejidad: O(n^3)
+         */
+        [[nodiscard]]
+        Matrix inverse() const {
+            if (rows_ != cols_) {
+                throw std::runtime_error("Matrix::inverse(): La matriz debe ser cuadrada.");
+            }
+            
+            // Verificación estática: La inversión de enteros no tiene sentido matemático
+            // en este contexto (1/2 = 0). Debe usarse float o double.
+            static_assert(std::is_floating_point_v<T>, "Matrix::inverse(): El tipo T debe ser punto flotante (float, double, etc).");
+
+            size_t n = rows_;
+            
+            // Crear matriz aumentada: [Temp | Result]
+            // 'temp' es una copia de *this que reduciremos a la Identidad.
+            Matrix temp = *this; 
+            
+            // 'result' comienza como la Identidad y terminará como la Inversa.
+            Matrix result(n, n);
+            for (size_t i = 0; i < n; ++i) {
+                result(i, i) = T{1};
+            }
+
+            // Algoritmo Gauss-Jordan
+            for (size_t j = 0; j < n; ++j) {
+                
+                // --- Pivoteo Parcial (para estabilidad numérica) ---
+                size_t pivot_row = j;
+                T max_val = Math::abs(temp(j, j));
+
+                for (size_t k = j + 1; k < n; ++k) {
+                    if (Math::abs(temp(k, j)) > max_val) {
+                        max_val = Math::abs(temp(k, j));
+                        pivot_row = k;
+                    }
+                }
+
+                // Verificar singularidad
+                if (max_val <= std::numeric_limits<T>::epsilon()) {
+                    throw std::runtime_error("Matrix::inverse(): La matriz es singular y no tiene inversa.");
+                }
+
+                // Intercambiar filas en ambas matrices si es necesario
+                if (pivot_row != j) {
+                    temp.swap_rows(j, pivot_row);
+                    result.swap_rows(j, pivot_row);
+                }
+
+                // --- Normalización ---
+                // Hacer que el pivote sea 1: R_j = R_j * (1 / pivot)
+                T pivot = temp(j, j);
+                T inv_pivot = T{1} / pivot;
+                
+                temp.scale_row(j, inv_pivot);
+                result.scale_row(j, inv_pivot);
+
+                // --- Eliminación ---
+                // Hacer ceros en el resto de la columna j
+                for (size_t i = 0; i < n; ++i) {
+                    if (i != j) {
+                        T factor = temp(i, j);
+                        
+                        // Operación: R_i = R_i - factor * R_j
+                        // Usamos -factor porque add_scaled_row suma.
+                        temp.add_scaled_row(i, j, -factor);
+                        result.add_scaled_row(i, j, -factor);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * @brief Resuelve el sistema de ecuaciones lineales Ax = B.
+         *
+         * Utiliza Eliminación Gaussiana con pivoteo parcial seguida de
+         * sustitución hacia atrás. Es numéricamente más estable y eficiente
+         * que calcular la inversa y multiplicar (x = inv(A) * B).
+         *
+         * @param B La matriz (o vector columna) de constantes del lado derecho.
+         * Debe tener el mismo número de filas que *this.
+         * @return Matrix La matriz X tal que Ax = B.
+         * @throw std::invalid_argument Si las dimensiones no coinciden.
+         * @throw std::runtime_error Si la matriz A es singular (no tiene solución única).
+         * @note Complejidad: O(n^3) (dominado por la eliminación).
+         */
+        [[nodiscard]]
+        Matrix solve(const Matrix& B) const {
+            if (rows_ != cols_) {
+                throw std::runtime_error("Matrix::solve(): La matriz de coeficientes A debe ser cuadrada.");
+            }
+            if (rows_ != B.rows()) {
+                throw std::invalid_argument("Matrix::solve(): El número de filas de B debe coincidir con A.");
+            }
+            
+            static_assert(std::is_floating_point_v<T>, "Matrix::solve(): Requiere tipos de punto flotante.");
+
+            size_t n = rows_;
+            size_t p = B.cols(); // B puede tener múltiples columnas (resolver múltiples sistemas a la vez)
+
+            // Clonamos A y B para manipularlos sin alterar los originales
+            Matrix U = *this; // Matriz que triangularemos
+            Matrix X = B;     // X sufrirá las mismas operaciones que U
+
+            // Fase 1: Eliminación hacia adelante (Triangularización)
+            for (size_t j = 0; j < n; ++j) {
+                
+                // Pivoteo Parcial
+                size_t pivot_row = j;
+                T max_val = Math::abs(U(j, j));
+
+                for (size_t k = j + 1; k < n; ++k) {
+                    if (Math::abs(U(k, j)) > max_val) {
+                        max_val = Math::abs(U(k, j));
+                        pivot_row = k;
+                    }
+                }
+
+                // Verificar singularidad
+                if (max_val <= std::numeric_limits<T>::epsilon()) {
+                    throw std::runtime_error("Matrix::solve(): La matriz es singular; el sistema no tiene solución única.");
+                }
+
+                // Intercambiar filas en U y en X
+                if (pivot_row != j) {
+                    U.swap_rows(j, pivot_row);
+                    X.swap_rows(j, pivot_row);
+                }
+
+                // Eliminación
+                // Hacer ceros debajo del pivote actual
+                T pivot = U(j, j);
+                for (size_t i = j + 1; i < n; ++i) {
+                    T factor = U(i, j) / pivot;
+                    
+                    // Restamos la fila pivote escalada a la fila actual
+                    // Nota: U.add_scaled_row(i, j, -factor) equivale a R_i = R_i - factor * R_j
+                    U.add_scaled_row(i, j, -factor);
+                    X.add_scaled_row(i, j, -factor);
+                }
+            }
+
+            // Fase 2: Sustitución hacia atrás
+            // Ahora U es triangular superior. Resolvemos para X desde la última fila hacia arriba.
+            
+            // Usar 'i' como size_t pero con cuidado en el bucle decreciente
+            for (size_t i = n; i-- > 0; ) {
+                T pivot = U(i, i);
+                
+                // Para cada columna 'col' del lado derecho (generalmente solo hay 1, pero soportamos n)
+                for (size_t col = 0; col < p; ++col) {
+                    T sum = 0;
+                    // Sumar los términos ya conocidos a la derecha del pivote: U(i, k) * X(k, col)
+                    for (size_t k = i + 1; k < n; ++k) {
+                        sum += U(i, k) * X(k, col);
+                    }
+                    
+                    // Despejar x_i:
+                    // (Valor_en_B - suma_términos_conocidos) / coeficiente_pivote
+                    X(i, col) = (X(i, col) - sum) / pivot;
+                }
+            }
+
+            return X;
+        }
+
         // -----------------------------------------------------------------
         // Operadores
         // -----------------------------------------------------------------
@@ -411,28 +588,36 @@ namespace Math {
          * @param i Índice de la fila.
          * @param j Índice de la columna.
          * @return Referencia al elemento 'data_[i * cols_ + j]'.
-         * @throw std::out_of_range Si los índices están fuera de los límites.
+         *
+         * @note No realiza verificación de límites.
+         *       Esta decisión prioriza el rendimiento y permite al compilador
+         *       aplicar optimizaciones agresivas (por ejemplo, desenrollado
+         *       de bucles y vectorización SIMD) en código crítico.
+         *
          * @note Complejidad: O(1)
+         *
+         * @warning El comportamiento es indefinido si los índices están fuera de rango.
          */
         T& operator()(size_t i, size_t j) {
-            if (i >= rows_ || j >= cols_) {
-                throw std::out_of_range("Matrix::operator(): Índices fuera de rango.");
-            }
             return data_[i * cols_ + j];
         }
 
         /**
-         * @brief Accede al elemento en la fila 'i' y columna 'j' (constante).
+         * @brief Accede al elemento en la fila 'i' y columna 'j' (solo lectura).
          * @param i Índice de la fila.
          * @param j Índice de la columna.
          * @return Referencia constante al elemento 'data_[i * cols_ + j]'.
-         * @throw std::out_of_range Si los índices están fuera de los límites.
+         *
+         * @note No realiza verificación de límites.
+         *       Esta decisión prioriza el rendimiento y permite al compilador
+         *       aplicar optimizaciones agresivas (por ejemplo, desenrollado
+         *       de bucles y vectorización SIMD) en código crítico.
+         *
          * @note Complejidad: O(1)
+         *
+         * @warning El comportamiento es indefinido si los índices están fuera de rango.
          */
         const T& operator()(size_t i, size_t j) const {
-            if (i >= rows_ || j >= cols_) {
-                throw std::out_of_range("Matrix::operator(): Índices fuera de rango.");
-            }
             return data_[i * cols_ + j];
         }
 

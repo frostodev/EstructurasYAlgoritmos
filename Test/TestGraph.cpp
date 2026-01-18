@@ -39,7 +39,7 @@ namespace Test {
         if (expected == INF) {
             pass = (actual == INF);
         } else {
-            pass = (Math::fabs(actual - expected) < 0.001);
+            pass = (Math::abs(actual - expected) < 0.001);
         }
 
         if (pass) {
@@ -138,7 +138,7 @@ namespace Test {
                 std::cout << "  Vecino " << count << ": " << edge.to << " (Peso: " << edge.weight << ")" << std::endl;
             }
             compare_bool_graph(count == 2, true, "Conteo de vecinos de 'A'");
-            compare_bool_graph(Math::fabs(total_weight - 8.7) < 0.001, true, "Suma de pesos de 'A'");
+            compare_bool_graph(Math::abs(total_weight - 8.7) < 0.001, true, "Suma de pesos de 'A'");
 
         } catch (const std::runtime_error& e) {
             std::cout << "  [ERROR] get_neighbors('A') lanzó excepción: " << e.what() << std::endl;

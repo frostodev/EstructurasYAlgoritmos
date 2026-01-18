@@ -393,20 +393,6 @@ namespace Math {
         return sign * guess;
     }
 
-    int abs(int x) {
-        return (x < 0) ? -x : x;
-    }
-
-    double fabs(double x) {
-        // Operador ternario simple para devolver la versión positiva de x
-        return (x < 0.0) ? -x : x;
-    }
-
-    long double fabsl(long double x) {
-        // Misma idea que en fabs
-        return (x < 0.0L) ? -x : x;
-    }
-
     double fmod(double x, double y) {
         // La división por cero es indefinida, retornar 0 como valor seguro
         if (y == 0.0) {

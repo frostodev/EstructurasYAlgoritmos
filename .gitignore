@@ -6,8 +6,7 @@ cmake_install.cmake
 CTestTestfile.cmake
 
 # Directorios de compilación específicos
-cmake-build-debug/
-cmake-build-release/
+Build/
 
 # Archivos temporales de CLion
 .idea/

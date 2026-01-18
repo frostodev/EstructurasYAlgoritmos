@@ -133,28 +133,20 @@ namespace Math {
     double nth_root(double x, int n);
 
     /**
-     * @brief Calcula el valor absoluto de un número entero.
+     * @brief Calcula el valor absoluto de cualquier tipo numérico.
+     * Reemplaza a las versiones específicas de int y double.
+     * Al estar en el header como template, el compilador genera
+     * la versión correcta (int, float, double) bajo demanda.
+     * @tparam T Tipo del valor (int, float, double, etc.)
      * @param x El valor de entrada.
-     * @return El valor absoluto de x (p.ej., abs(-3) retorna 3).
-     * @note Complejidad: O(1)
+     * @return El valor absoluto de x.
      */
-    int abs(int x);
-
-    /**
-     * @brief Calcula el valor absoluto de un número de punto flotante de doble precisión.
-     * @param x El valor de entrada.
-     * @return El valor absoluto de x (p.ej., fabs(-3.0) retorna 3.0).
-     * @note Complejidad: O(1)
-     */
-    double fabs(double x);
-
-    /**
-     * @brief Calcula el valor absoluto de un número de punto flotante de precisión extendida (long double).
-     * @param x El valor de entrada.
-     * @return El valor absoluto de x (p.ej., fabsl(-3.0L) retorna 3.0L).
-     * @note Complejidad: O(1)
-     */
-    long double fabsl(long double x);
+    template <typename T>
+    T abs(T x) {
+        // Simple, eficiente y funciona para todo tipo con signo
+        // T{0} asegura que comparamos con el cero del mismo tipo
+        return (x < T{0}) ? -x : x;
+    }
 
     /**
      * @brief Calcula el resto de punto flotante de la división x / y.
