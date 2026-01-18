@@ -38,7 +38,7 @@ namespace Math {
                     : rows_(rows), cols_(cols), size_(0), data_() {
 
             // Verificar límites inferiores de tamaño
-            if (rows <= 0 || cols <= 0) {
+            if (rows == 0 || cols == 0) {
                 throw std::invalid_argument("Matrix(): Las dimensiones de la matriz deben ser enteros positivos.");
             }
 
@@ -152,6 +152,7 @@ namespace Math {
          * @return Referencia al elemento en la posición (i, j).
          *
          * @throw std::out_of_range Si i o j están fuera de los límites de la matriz.
+         * @note Complejidad: O(1).
          */
         T& at(size_t i, size_t j) {
             if (i >= rows_ || j >= cols_) {
@@ -577,6 +578,49 @@ namespace Math {
             }
 
             return X;
+        }
+
+        /**
+         * @brief Calcula la matriz transpuesta.
+         * Devuelve una nueva matriz en la que las filas de la matriz original
+         * se convierten en columnas y las columnas en filas.
+         * @note La matriz original no se modifica.
+         * @return Matriz transpuesta de tamaño (cols_ x rows_).
+         * @note Complejidad: O(rows_ * cols_)
+         */
+        [[nodiscard]]
+        Matrix transpose() const {
+            // Crear una matriz con dimensiones invertidas
+            Matrix result(cols_, rows_);
+
+            // Intercambiar filas por columnas
+            for (size_t i = 0; i < rows_; ++i) {
+                for (size_t j = 0; j < cols_; ++j) {
+                    result(j, i) = (*this)(i, j);
+                }
+            }
+
+            // Devolver la matriz transpuesta
+            return result;
+        }
+
+        /**
+         * @brief Calcula la traza de la matriz.
+         * La traza de una matriz es la suma de los elementos de su diagonal principal.
+         * Si la matriz no es cuadrada, se suman los elementos hasta la mínima dimensión
+         * (filas o columnas).
+         * @return Suma de los elementos de la diagonal principal.
+         * @note La matriz original no se modifica.
+         * @note Complejidad: O(min(rows_, cols_))
+         */
+        [[nodiscard]]
+        T trace() const {
+            T sum = 0;
+            size_t min_dim = Math::min(rows_, cols_);
+            for (size_t i = 0; i < min_dim; ++i) {
+                sum += (*this)(i, i);
+            }
+            return sum;
         }
 
         // -----------------------------------------------------------------
