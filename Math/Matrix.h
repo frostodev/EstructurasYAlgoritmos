@@ -308,12 +308,7 @@ namespace Math {
         }
 
         /**
-         * @brief Calcula el determinante de la matriz.
-         *
-         * Utiliza la eliminación Gaussiana con pivoteo parcial (basado en LU)
-         * para transformar la matriz en una matriz triangular superior (U).
-         * El determinante es el producto de la diagonal de U, ajustado por
-         * los intercambios de filas (pivoteo).
+         * @brief Calcula el determinante usando la traza de U en la factorización LU.
          *
          * Para matrices de 1x1 y 2x2, se usa un cálculo directo.
          *
@@ -344,70 +339,34 @@ namespace Math {
                 );
             }
 
-            // --- Eliminación Gaussiana (n > 2) ---
+            // Copia en long double para estabilidad numérica (y soportar enteros)
+            Matrix<long double> LU(n, n);
+            for(size_t i = 0; i < n; ++i) {
+                for(size_t j = 0; j < n; ++j) {
+                    LU(i, j) = static_cast<long double>((*this)(i, j));
+                }
+            }
 
-            // Crear una copia de la matriz en 'long double'
-            // para asegurar aritmética de punto flotante
-            Matrix<long double> temp(n, n);
+            DS::Vector<size_t> P(n);
+            int swaps = 0;
+            try {
+                swaps = lu_decompose_impl(LU, P);
+            } catch (const std::runtime_error&) {
+                return T{}; // Si falla por singularidad, el determinante es 0
+            }
+
+            // El determinante es el producto de la diagonal,
+            // invirtiendo el signo si hubo un número impar de intercambios.
+            long double det = (swaps % 2 != 0) ? -1.0L : 1.0L;
             for (size_t i = 0; i < n; ++i) {
-                for (size_t j = 0; j < n; ++j) {
-                    temp(i, j) = static_cast<long double>((*this)(i, j));
-                }
+                det *= LU(i, i);
             }
 
-            // Inicializar el signo del determinante
-            long double det_sign = 1.0L;
-
-            for (size_t j = 0; j < n; ++j) { // 'j' es la columna del pivote actual
-
-                // Pivoteo Parcial:
-                size_t max_row = j;
-                long double max_val = Math::abs(temp(j, j));
-
-                for (size_t k = j + 1; k < n; ++k) {
-                    long double current_val = Math::abs(temp(k, j));
-                    if (current_val > max_val) {
-                        max_val = current_val;
-                        max_row = k;
-                    }
-                }
-
-                // Verificar Singularidad
-                if (max_val <= std::numeric_limits<long double>::epsilon()) {
-                    return T{}; // Determinante es 0
-                }
-
-                // Intercambiar filas (si es necesario)
-                if (max_row != j) {
-                    temp.swap_rows(j, max_row);
-                    det_sign = -det_sign; // Cada swap invierte el signo
-                }
-
-                // Eliminación Gaussiana
-                long double pivot = temp(j, j); // Es 'long double'
-                for (size_t i = j + 1; i < n; ++i) {
-                    // División de punto flotante.
-                    long double factor = temp(i, j) / pivot;
-
-                    temp.add_scaled_row(i, j, -factor);
-                }
-            }
-
-            // Calcular el determinante final
-            long double determinant_value = det_sign;
-            for (size_t i = 0; i < n; ++i) {
-                determinant_value *= temp(i, i);
-            }
-
-            // Convertir el resultado final de vuelta a T
-            return static_cast<T>(determinant_value);
+            return static_cast<T>(det);
         }
 
         /**
-         * @brief Calcula la inversa de la matriz utilizando Gauss-Jordan.
-         *
-         * Transforma la matriz original en la Identidad mientras aplica las mismas
-         * operaciones a una matriz Identidad inicial, resultando en la inversa.
+         * @brief Calcula la inversa de la matriz resolviendo AX = I mediante LU.
          *
          * @return Matrix La matriz inversa.
          * @throw std::runtime_error Si la matriz no es cuadrada o es singular (determinante 0).
@@ -425,80 +384,30 @@ namespace Math {
             static_assert(std::is_floating_point_v<T>, "Matrix::inverse(): El tipo T debe ser punto flotante (float, double, etc).");
 
             size_t n = rows_;
-            
-            // Crear matriz aumentada: [Temp | Result]
-            // 'temp' es una copia de *this que reduciremos a la Identidad.
-            Matrix temp = *this; 
-            
-            // 'result' comienza como la Identidad y terminará como la Inversa.
-            Matrix result(n, n);
+
+            // Crear matriz Identidad
+            Matrix I(n, n);
             for (size_t i = 0; i < n; ++i) {
-                result(i, i) = T{1};
+                I(i, i) = T{1};
             }
 
-            // Algoritmo Gauss-Jordan
-            for (size_t j = 0; j < n; ++j) {
-                
-                // --- Pivoteo Parcial (para estabilidad numérica) ---
-                size_t pivot_row = j;
-                T max_val = Math::abs(temp(j, j));
-
-                for (size_t k = j + 1; k < n; ++k) {
-                    if (Math::abs(temp(k, j)) > max_val) {
-                        max_val = Math::abs(temp(k, j));
-                        pivot_row = k;
-                    }
-                }
-
-                // Verificar singularidad
-                if (max_val <= std::numeric_limits<T>::epsilon()) {
-                    throw std::runtime_error("Matrix::inverse(): La matriz es singular y no tiene inversa.");
-                }
-
-                // Intercambiar filas en ambas matrices si es necesario
-                if (pivot_row != j) {
-                    temp.swap_rows(j, pivot_row);
-                    result.swap_rows(j, pivot_row);
-                }
-
-                // --- Normalización ---
-                // Hacer que el pivote sea 1: R_j = R_j * (1 / pivot)
-                T pivot = temp(j, j);
-                T inv_pivot = T{1} / pivot;
-                
-                temp.scale_row(j, inv_pivot);
-                result.scale_row(j, inv_pivot);
-
-                // --- Eliminación ---
-                // Hacer ceros en el resto de la columna j
-                for (size_t i = 0; i < n; ++i) {
-                    if (i != j) {
-                        T factor = temp(i, j);
-                        
-                        // Operación: R_i = R_i - factor * R_j
-                        // Usamos -factor porque add_scaled_row suma.
-                        temp.add_scaled_row(i, j, -factor);
-                        result.add_scaled_row(i, j, -factor);
-                    }
-                }
-            }
-
-            return result;
+            // La inversa es simplemente resolver el sistema con la Identidad
+            return solve(I);
         }
 
         /**
-         * @brief Resuelve el sistema de ecuaciones lineales Ax = B.
+         * @brief Resuelve el sistema de ecuaciones lineales Ax = B usando Descomposición LU.
          *
-         * Utiliza Eliminación Gaussiana con pivoteo parcial seguida de
-         * sustitución hacia atrás. Es numéricamente más estable y eficiente
-         * que calcular la inversa y multiplicar (x = inv(A) * B).
+         * Descompone la matriz en PA = LU in-place. Es altamente eficiente y estable,
+         * especialmente útil para cálculos repetitivos donde se resuelven múltiples
+         * vectores B con la misma matriz de coeficientes.
          *
-         * @param B La matriz (o vector columna) de constantes del lado derecho.
-         * Debe tener el mismo número de filas que *this.
+         * @param B La matriz (o vector) de constantes del lado derecho.
          * @return Matrix La matriz X tal que Ax = B.
          * @throw std::invalid_argument Si las dimensiones no coinciden.
-         * @throw std::runtime_error Si la matriz A es singular (no tiene solución única).
-         * @note Complejidad: O(n^3) (dominado por la eliminación).
+         * @throw std::runtime_error Si la matriz A es singular.
+         * @note Complejidad: O(n^3) para la factorización LU, más O(p * n^2) para la
+         * sustitución (donde 'p' es el número de columnas de B). Tiempo total dominante: O(n^3).
          */
         [[nodiscard]]
         Matrix solve(const Matrix& B) const {
@@ -508,71 +417,45 @@ namespace Math {
             if (rows_ != B.rows()) {
                 throw std::invalid_argument("Matrix::solve(): El número de filas de B debe coincidir con A.");
             }
-            
+
             static_assert(std::is_floating_point_v<T>, "Matrix::solve(): Requiere tipos de punto flotante.");
 
-            size_t n = rows_;
-            size_t p = B.cols(); // B puede tener múltiples columnas (resolver múltiples sistemas a la vez)
+            const size_t n = rows_;
+            const size_t p = B.cols();
 
-            // Clonamos A y B para manipularlos sin alterar los originales
-            Matrix U = *this; // Matriz que triangularemos
-            Matrix X = B;     // X sufrirá las mismas operaciones que U
+            // Factorización LU in-place con Pivoteo Parcial (PA = LU)
+            // L y U se almacenan sobre-escribiendo la misma matriz para ahorrar alocaciones.
+            Matrix LU = *this;
+            DS::Vector<size_t> P(n);
+            lu_decompose_impl(LU, P);
 
-            // Fase 1: Eliminación hacia adelante (Triangularización)
-            for (size_t j = 0; j < n; ++j) {
-                
-                // Pivoteo Parcial
-                size_t pivot_row = j;
-                T max_val = Math::abs(U(j, j));
+            // Resolución del Sistema: Ly = PB, luego Ux = y
+            Matrix X(n, p);
 
-                for (size_t k = j + 1; k < n; ++k) {
-                    if (Math::abs(U(k, j)) > max_val) {
-                        max_val = Math::abs(U(k, j));
-                        pivot_row = k;
-                    }
-                }
-
-                // Verificar singularidad
-                if (max_val <= std::numeric_limits<T>::epsilon()) {
-                    throw std::runtime_error("Matrix::solve(): La matriz es singular; el sistema no tiene solución única.");
-                }
-
-                // Intercambiar filas en U y en X
-                if (pivot_row != j) {
-                    U.swap_rows(j, pivot_row);
-                    X.swap_rows(j, pivot_row);
-                }
-
-                // Eliminación
-                // Hacer ceros debajo del pivote actual
-                T pivot = U(j, j);
-                for (size_t i = j + 1; i < n; ++i) {
-                    T factor = U(i, j) / pivot;
-                    
-                    // Restamos la fila pivote escalada a la fila actual
-                    // Nota: U.add_scaled_row(i, j, -factor) equivale a R_i = R_i - factor * R_j
-                    U.add_scaled_row(i, j, -factor);
-                    X.add_scaled_row(i, j, -factor);
+            // Aplicar permutación inicial: X arranca como B transpuesto por P (B' = PB)
+            for (size_t i = 0; i < n; ++i) {
+                for (size_t col = 0; col < p; ++col) {
+                    X(i, col) = B(P[i], col);
                 }
             }
 
-            // Fase 2: Sustitución hacia atrás
-            // Ahora U es triangular superior. Resolvemos para X desde la última fila hacia arriba.
-            
-            // Usar 'i' como size_t pero con cuidado en el bucle decreciente
-            for (size_t i = n; i-- > 0; ) {
-                T pivot = U(i, i);
-                
-                // Para cada columna 'col' del lado derecho (generalmente solo hay 1, pero soportamos n)
+            // Sustitución hacia adelante: Resolver Ly = B'
+            // Recordar que L tiene unos (1.0) implícitos en su diagonal principal
+            for (size_t i = 0; i < n; ++i) {
                 for (size_t col = 0; col < p; ++col) {
                     T sum = 0;
-                    // Sumar los términos ya conocidos a la derecha del pivote: U(i, k) * X(k, col)
-                    for (size_t k = i + 1; k < n; ++k) {
-                        sum += U(i, k) * X(k, col);
-                    }
-                    
-                    // Despejar x_i:
-                    // (Valor_en_B - suma_términos_conocidos) / coeficiente_pivote
+                    for (size_t j = 0; j < i; ++j) sum += LU(i, j) * X(j, col);
+                    X(i, col) -= sum;
+                }
+            }
+
+            // Sustitución hacia atrás: Resolver Ux = y
+            // Aquí sí dividimos por la diagonal porque la diagonal de U guarda los pivotes
+            for (size_t i = n; i-- > 0; ) {
+                T pivot = LU(i, i);
+                for (size_t col = 0; col < p; ++col) {
+                    T sum = 0;
+                    for (size_t j = i + 1; j < n; ++j) sum += LU(i, j) * X(j, col);
                     X(i, col) = (X(i, col) - sum) / pivot;
                 }
             }
@@ -624,7 +507,7 @@ namespace Math {
         }
 
         // -----------------------------------------------------------------
-        // Operadores
+        // Operadores de Acceso
         // -----------------------------------------------------------------
 
         /**
@@ -665,84 +548,184 @@ namespace Math {
             return data_[i * cols_ + j];
         }
 
+        // -----------------------------------------------------------------
+        // Operadores de Asignación Compuesta (In-Place)
+        // -----------------------------------------------------------------
+
         /**
-         * @brief Suma de matrices elemento a elemento.
-         * @param other La matriz a sumar (lado derecho).
-         * @return Una nueva matriz que es la suma de '*this' y 'other'.
-         * @throw std::invalid_argument Si las dimensiones de las matrices no coinciden.
+         * @brief Suma otra matriz a la actual (modificación in-place).
+         * @param other La matriz a sumar.
+         * @return Referencia a la matriz actual modificada (*this).
+         * @throw std::invalid_argument Si las dimensiones no coinciden.
          * @note Complejidad: O(size_) = O(rows_ * cols_)
          */
-        Matrix operator+(const Matrix& other) const {
+        Matrix& operator+=(const Matrix& other) {
             if (rows_ != other.rows_ || cols_ != other.cols_) {
-                throw std::invalid_argument("Matrix::operator+: Las dimensiones de las matrices deben coincidir.");
+                throw std::invalid_argument("Matrix::operator+=: Las dimensiones deben coincidir.");
             }
-
-            Matrix result(rows_, cols_);
             for (size_t i = 0; i < size_; ++i) {
-                result.data_[i] = data_[i] + other.data_[i];
+                data_[i] += other.data_[i];
             }
+            return *this;
+        }
+
+        /**
+         * @brief Resta otra matriz a la actual (modificación in-place).
+         * @param other La matriz a restar.
+         * @return Referencia a la matriz actual modificada (*this).
+         * @throw std::invalid_argument Si las dimensiones no coinciden.
+         * @note Complejidad: O(size_) = O(rows_ * cols_)
+         */
+        Matrix& operator-=(const Matrix& other) {
+            if (rows_ != other.rows_ || cols_ != other.cols_) {
+                throw std::invalid_argument("Matrix::operator-=: Las dimensiones deben coincidir.");
+            }
+            for (size_t i = 0; i < size_; ++i) {
+                data_[i] -= other.data_[i];
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Multiplica la matriz actual por un escalar (modificación in-place).
+         * @param scalar El valor escalar.
+         * @return Referencia a la matriz actual modificada (*this).
+         * @note Complejidad: O(size_) = O(rows_ * cols_)
+         */
+        Matrix& operator*=(T scalar) {
+            for (size_t i = 0; i < size_; ++i) {
+                data_[i] *= scalar;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Divide la matriz actual por un escalar (modificación in-place).
+         * @param scalar El valor escalar (divisor).
+         * @return Referencia a la matriz actual modificada (*this).
+         * @throw std::invalid_argument Si el escalar es cero o cercano a cero.
+         * @note Complejidad: O(size_) = O(rows_ * cols_)
+         */
+        Matrix& operator/=(T scalar) {
+            if (Math::abs(scalar) <= std::numeric_limits<T>::epsilon()) {
+                throw std::invalid_argument("Matrix::operator/=: División por cero.");
+            }
+            for (size_t i = 0; i < size_; ++i) {
+                data_[i] /= scalar;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Multiplica la matriz actual por otra matriz y asigna el resultado.
+         * @note Matemáticamente, la multiplicación de matrices requiere un buffer
+         * temporal, por lo que esta operación realiza una asignación completa (no es
+         * estrictamente O(1) en memoria como los escalares).
+         * @param other La matriz multiplicadora.
+         * @return Referencia a la matriz actual modificada (*this).
+         * @throw std::invalid_argument Si las dimensiones internas no coinciden.
+         * @note Complejidad: O(n^2.81) (Delega a Strassen).
+         */
+        Matrix& operator*=(const Matrix& other) {
+            // Evaluamos el producto en una nueva matriz y luego la movemos a *this
+            *this = *this * other;
+            return *this;
+        }
+
+        // -----------------------------------------------------------------
+        // Operadores Aritméticos Binarios (Retornan nueva matriz)
+        // -----------------------------------------------------------------
+
+        /**
+         * @brief Suma de matrices. Delega en operator+=.
+         * @param other La matriz a sumar (lado derecho).
+         * @return Matrix Nueva matriz resultante.
+         * @note Complejidad: O(rows_ * cols_)
+         */
+        [[nodiscard]]
+        Matrix operator+(const Matrix& other) const {
+            Matrix result = *this; // Constructor de copia
+            result += other;
             return result;
         }
 
         /**
-         * @brief Resta de matrices elemento a elemento.
+         * @brief Resta de matrices. Delega en operator-=.
          * @param other La matriz a restar (lado derecho).
-         * @return Una nueva matriz que es la resta de '*this' y 'other'.
-         * @throw std::invalid_argument Si las dimensiones de las matrices no coinciden.
-         * @note Complejidad: O(size_) = O(rows_ * cols_)
+         * @return Matrix Nueva matriz resultante.
+         * @note Complejidad: O(rows_ * cols_)
          */
+        [[nodiscard]]
         Matrix operator-(const Matrix& other) const {
-            if (rows_ != other.rows_ || cols_ != other.cols_) {
-                throw std::invalid_argument("Matrix::operator-: Las dimensiones de las matrices deben coincidir.");
-            }
+            Matrix result = *this;
+            result -= other;
+            return result;
+        }
 
-            Matrix result(rows_, cols_);
-            for (size_t i = 0; i < size_; ++i) {
-                result.data_[i] = data_[i] - other.data_[i];
-            }
+        /**
+         * @brief Multiplicación por un escalar (Matriz * Escalar).
+         * @param scalar El valor escalar.
+         * @return Matrix Nueva matriz resultante.
+         * @note Complejidad: O(rows_ * cols_)
+         */
+        [[nodiscard]]
+        Matrix operator*(T scalar) const {
+            Matrix result = *this;
+            result *= scalar;
+            return result;
+        }
+
+        /**
+         * @brief División por un escalar (Matriz / Escalar).
+         * @param scalar El valor escalar.
+         * @return Matrix Nueva matriz resultante.
+         * @note Complejidad: O(rows_ * cols_)
+         */
+        [[nodiscard]]
+        Matrix operator/(T scalar) const {
+            Matrix result = *this;
+            result /= scalar;
             return result;
         }
 
         /**
          * @brief Multiplicación de matrices.
-         * Llama a la implementación interna de Strassen.
+         * Llama a la implementación interna de Strassen (o clásica si es pequeña).
          * @param other La matriz por la cual multiplicar (lado derecho).
-         * @return Matrix Una nueva matriz que es el producto de '*this' y 'other'.
-         * @throw std::invalid_argument Si las dimensiones internas no coinciden ('this->cols_ != other.rows_').
-         * @note Complejidad: O(n^2.81) para matrices cuadradas n * n.
+         * @return Matrix Nueva matriz producto.
+         * @throw std::invalid_argument Si cols_ != other.rows_.
+         * @note Complejidad: O(n^2.81) para matrices cuadradas n x n.
          */
-        Matrix operator*(const Matrix &other) const {
+        [[nodiscard]]
+        Matrix operator*(const Matrix& other) const {
             if (cols_ != other.rows_) {
                 throw std::invalid_argument("Matrix::operator*: Dimensiones incompatibles para multiplicar.");
             }
-            // Delegar al algoritmo de Strassen
             return strassen_mul(other);
         }
 
+        // -----------------------------------------------------------------
+        // Operadores Relacionales
+        // -----------------------------------------------------------------
+
         /**
-         * @brief Compara la igualdad entre dos matrices.
-         * Dos matrices son iguales si tienen las mismas dimensiones y todos
-         * sus elementos correspondientes son iguales.
-         * @param other La matriz con la que comparar.
-         * @return true si son iguales, false en caso contrario.
-         * @note Complejidad: O(size_) = O(rows_ * cols_) en el peor caso (son iguales), O(1) si difieren
+         * @brief Compara la igualdad exacta entre dos matrices.
+         * @note Para matrices de punto flotante, considera implementar un método
+         * de igualdad aproximada (is_approx) debido a los errores de precisión.
+         * @note Complejidad: O(rows_ * cols_)
          */
+        [[nodiscard]]
         bool operator==(const Matrix& other) const {
-            // Mismas dimensiones
-            if (rows_ != other.rows_ || cols_ != other.cols_) {
-                return false;
-            }
-            // Comparar todos los elementos (DS::Vector::operator== lo hace)
+            if (rows_ != other.rows_ || cols_ != other.cols_) return false;
             return data_ == other.data_;
         }
 
         /**
          * @brief Compara la desigualdad entre dos matrices.
-         * @param other La matriz con la que comparar.
-         * @return true si no son iguales, false si lo son.
-         * @note Complejidad: O(size_) = O(rows_ * cols_)
+         * @note Complejidad: O(rows_ * cols_)
          */
-        bool operator!=(const Matrix &other) const {
+        [[nodiscard]]
+        bool operator!=(const Matrix& other) const {
             return !(*this == other);
         }
 
@@ -751,6 +734,63 @@ namespace Math {
         size_t cols_;           // Número de columnas
         size_t size_;           // Número total de elementos (rows * cols)
         DS::Vector<T> data_;    // Almacenamiento 1D de datos en orden "row-major"
+
+        /**
+         * @brief Factorización LU in-place compartida.
+         * @return El número de intercambios de filas realizados (útil para el determinante).
+         * @throw std::runtime_error si la matriz es singular.
+         * @note Complejidad: O(n^3)
+         */
+        template <typename U>
+        static int lu_decompose_impl(Matrix<U>& LU, DS::Vector<size_t>& P) {
+            const size_t n = LU.rows();
+            int swaps = 0;
+
+            for (size_t i = 0; i < n; ++i) {
+                P[i] = i;
+            }
+
+            for (size_t k = 0; k < n; ++k) {
+                // --- Pivoteo ---
+                size_t pivot_row = k;
+                U max_val = Math::abs(LU(k, k));
+
+                for (size_t i = k + 1; i < n; ++i) {
+                    U current_val = Math::abs(LU(i, k));
+                    if (current_val > max_val) {
+                        max_val = current_val;
+                        pivot_row = i;
+                    }
+                }
+
+                // Evitar división por cero (o extremadamente cerca de cero)
+                if (max_val <= std::numeric_limits<U>::epsilon()) {
+                    throw std::runtime_error("Matrix::lu_decompose_impl(): Matriz singular, el sistema no tiene solución única.");
+                }
+
+                // Intercambio lógico de filas (Permutación) y físico en LU
+                if (pivot_row != k) {
+                    LU.swap_rows(k, pivot_row);
+                    std::swap(P[k], P[pivot_row]);
+                    swaps++; // Rastrear intercambios para el determinante
+                }
+
+                // --- Descomposición ---
+                U pivot = LU(k, k);
+                for (size_t i = k + 1; i < n; ++i) {
+                    // Almacenamos el factor de L directamente debajo de la diagonal principal
+                    LU(i, k) /= pivot;
+                    U factor = LU(i, k);
+
+                    // Actualizamos la parte U. Iterar sobre 'j' aquí es rapidísimo
+                    // porque los datos son contiguos (row-major alignment).
+                    for (size_t j = k + 1; j < n; ++j) {
+                        LU(i, j) -= factor * LU(k, j);
+                    }
+                }
+            }
+            return swaps;
+        }
         
         /**
          * @brief Multiplicación de matrices O(n^3) clásica.
